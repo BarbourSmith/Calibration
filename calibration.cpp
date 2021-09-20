@@ -271,9 +271,6 @@ void computeCalibration(double measurements[][4], double result[6], void (*webPr
     
     sortPopulation(population);
     
-    Serial.println("Final fittest: ");
-    Serial.println(population[0][5]);
-    
     //Pass back the result
     result[0] = population[0][0];
     result[1] = population[0][1];
@@ -281,13 +278,4 @@ void computeCalibration(double measurements[][4], double result[6], void (*webPr
     result[3] = population[0][3];
     result[4] = population[0][4];
     result[5] = population[0][5];
-
-    if(population[0][5] < .2){
-        Serial.println("Calibration success");
-    }
-    else{
-        Serial.println("Calibration failure...bad measurements");
-    }
-    
-    delay(1000);
 }
