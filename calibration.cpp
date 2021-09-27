@@ -238,13 +238,13 @@ void evolve(double population[][6], double measurements[][4], double stepSize, d
 }
 
 //Compute the calibration
-void computeCalibration(double measurements[][4], double result[6], void (*webPrint) (double arg1)){
+void computeCalibration(double measurements[][4], double result[6], void (*webPrint) (double arg1),double tlX,double tlY, double trX, double trY, double brX){
     Serial.println("Beginning to compute calibration");
     double initialWidth = 3000;
     double initialHeight = 1800;
     
     // Establish initial guesses for the corners
-    double initialIndividual[] = {0, initialHeight, initialWidth, initialHeight, initialWidth, 10000};
+    double initialIndividual[] = {tlX, tlY, trX, trY, brX, 10000};
     
     // Build a population
     double population[50][6];
@@ -264,9 +264,13 @@ void computeCalibration(double measurements[][4], double result[6], void (*webPr
     }
     
     //Evolve the population 
+    webPrint(5);
     evolve(population, measurements,  5, .25, 2000, webPrint);
+    webPrint(.5);
     evolve(population, measurements, .5, .25, 2000, webPrint);
+    webPrint(.1);
     evolve(population, measurements, .1, .01, 2000, webPrint);
+    webPrint(.01);
     evolve(population, measurements, .01, .01, 2000, webPrint);
     
     sortPopulation(population);
