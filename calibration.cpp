@@ -1,8 +1,10 @@
 #include "calibration.h";
 #include <Arduino.h>;
 
-// int printToWeb (int (*f) (const int arg1, const int arg2), const int a, const int b)
-// {
+float _tlZ;
+float _trZ;
+float _blZ;
+float _brZ;
 
 void printIndividual(double individual[]){
     Serial.print("| ");
@@ -54,20 +56,25 @@ double findDistanceToArc(double px,double py,double r,double ax,double ay){
     return dist;
 }
 
+//Modify the radius to acocunt for height change
+double inPlaneRadius(double radius, double deltaZ){
+    return sqrt(radius*radius - deltaZ*deltaZ);
+}
+
 //Find the avg dist from xy point to all four arcs
 double distPointToArcs(double x,double y,double measurement[],double individual[]){
     
     //Compute dist to top left arc
-    double tlDist = findDistanceToArc(x, y, measurement[0], individual[0], individual[1]);
+    double tlDist = findDistanceToArc(x, y, inPlaneRadius(measurement[0], _tlZ), individual[0], individual[1]);
     
     //Compute dist to tr arc
-    double trDist = findDistanceToArc(x, y, measurement[1], individual[2], individual[3]);
+    double trDist = findDistanceToArc(x, y, inPlaneRadius(measurement[1], _trZ), individual[2], individual[3]);
     
     //Compute dist to bl arc
-    double blDist = findDistanceToArc(x, y, measurement[2], 0, 0);
+    double blDist = findDistanceToArc(x, y, inPlaneRadius(measurement[2], _blZ), 0, 0);
     
     //Compute dist to br arc
-    double brDist = findDistanceToArc(x, y, measurement[3], individual[4], 0);
+    double brDist = findDistanceToArc(x, y, inPlaneRadius(measurement[3], _brZ), individual[4], 0);
     
     //Return the average
     return (tlDist + trDist + blDist + brDist)/4.0;
@@ -202,7 +209,7 @@ void evolve(double population[][6], double measurements[][4], double stepSize, d
             numberOfRepitions = 0;
         }
         lastVal = population[0][5];
-        if(numberOfRepitions > 25){
+        if(numberOfRepitions > timeout){
             Serial.println("Stuck");
             break;
         }
@@ -230,18 +237,21 @@ void evolve(double population[][6], double measurements[][4], double stepSize, d
         //Repeat until the fitness function is within some threshold or timeout
         
         i++;
-        if(i > timeout){
-            Serial.println("Timeout");
+        if(i > 1000){
+            Serial.println("Max number of iterations exceded");
             break;
         }
     }
 }
 
 //Compute the calibration
-void computeCalibration(double measurements[][4], double result[6], void (*webPrint) (double arg1),double tlX,double tlY, double trX, double trY, double brX){
+void computeCalibration(double measurements[][4], double result[6], void (*webPrint) (double arg1),double tlX,double tlY, double trX, double trY, double brX, double tlZ, double trZ, double blZ, double brZ){
     Serial.println("Beginning to compute calibration");
-    double initialWidth = 3000;
-    double initialHeight = 1800;
+    
+    _tlZ = tlZ;
+    _trZ = trZ;
+    _blZ = blZ;
+    _brZ = brZ;
     
     // Establish initial guesses for the corners
     double initialIndividual[] = {tlX, tlY, trX, trY, brX, 10000};
@@ -265,13 +275,13 @@ void computeCalibration(double measurements[][4], double result[6], void (*webPr
     
     //Evolve the population 
     webPrint(5);
-    evolve(population, measurements,  5, .25, 2000, webPrint);
+    evolve(population, measurements,  5, .25, 3, webPrint);
     webPrint(.5);
-    evolve(population, measurements, .5, .25, 2000, webPrint);
+    evolve(population, measurements, .5, .25, 3, webPrint);
     webPrint(.1);
-    evolve(population, measurements, .1, .01, 2000, webPrint);
+    evolve(population, measurements, .1, .01, 3, webPrint);
     webPrint(.01);
-    evolve(population, measurements, .01, .01, 2000, webPrint);
+    evolve(population, measurements, .01, .01, 3, webPrint);
     
     sortPopulation(population);
     
